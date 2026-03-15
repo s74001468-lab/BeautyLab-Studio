@@ -1,0 +1,9 @@
+# Игнорируем файлы сред окружения и секреты
+.env
+credentials.json
+__pycache__/
+*.pyc
+.venv
+venv/
+env/
+.DS_Store
