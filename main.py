@@ -11,6 +11,7 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKe
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from aiohttp import web
 from dotenv import load_dotenv
 
 # Загружаем переменные из .env
@@ -595,12 +596,28 @@ async def process_cancel_booking(callback: CallbackQuery):
         await callback.message.edit_text("Не удалось отменить запись из-за ошибки сети.")
 
 
+async def health_check(request):
+    return web.Response(text="Bot is running!")
+
+async def start_web_server():
+    app = web.Application()
+    app.router.add_get('/', health_check)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    port = int(os.getenv("PORT", 8080))
+    site = web.TCPSite(runner, '0.0.0.0', port)
+    await site.start()
+    logging.info(f"🌐 Web server started on port {port} (for Render health check)")
+
 async def main():
     if not BOT_TOKEN:
         logging.error("🚨 ВНИМАНИЕ: Не указан BOT_TOKEN в файле .env!")
         return
         
     logging.info("🤖 Запуск BeautyLab Bot...")
+    
+    # 0. Запускаем фоновый веб-сервер для того чтобы бесплатные хостинги (Render/Railway) не убивали процесс
+    await start_web_server()
     
     # 1. Восстанавливаем сохраненные напоминания из базы
     await restore_reminders_from_sheet()
